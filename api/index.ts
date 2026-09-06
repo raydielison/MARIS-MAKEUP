@@ -33,6 +33,19 @@ function isAdmin(req: Request): boolean {
   return token === 'token_admin_demo' || token.startsWith('token_admin_');
 }
 
+// Vercel rewrites /api and /api/ to this function. Keep the root endpoint valid.
+app.get('/', (_req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', service: 'MARIS MAKEUP API' });
+});
+
+app.get('/api', (_req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', service: 'MARIS MAKEUP API' });
+});
+
+app.get('/api/', (_req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', service: 'MARIS MAKEUP API' });
+});
+
 app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
