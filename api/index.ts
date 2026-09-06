@@ -1,5 +1,4 @@
 import express, { Request, Response } from 'express';
-import { getSupabase, isSupabaseConfigured } from '../server/supabase';
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
@@ -26,6 +25,8 @@ app.get(['/dashboard/admin', '/api/dashboard/admin'], async (req: Request, res: 
   }
 
   try {
+    const { getSupabase, isSupabaseConfigured } = await import('../server/supabase');
+
     if (!isSupabaseConfigured()) {
       res.status(503).json({ error: 'Supabase não configurado no ambiente da Vercel.' });
       return;
