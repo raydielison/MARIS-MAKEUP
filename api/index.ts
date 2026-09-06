@@ -1,7 +1,30 @@
 import express, { Request, Response } from 'express';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
+
+let supabaseClient: SupabaseClient | null = null;
+
+function getSupabaseUrl(): string {
+  const url = process.env.SUPABASE_URL?.trim();
+  if (url && /^https?:\/\//.test(url)) return url.replace(/\/+$/, '');
+  return '';
+}
+
+function getSupabase(): SupabaseClient {
+  if (!supabaseClient) {
+    const url = getSupabaseUrl();
+    const key = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      throw new Error('Supabase não configurado: defina SUPABASE_URL e SUPABASE_ANON_KEY ou SUPABASE_SERVICE_ROLE_KEY na Vercel.');
+    }
+    supabaseClient = createClient(url, key, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+  }
+  return supabaseClient;
+}
 
 function isAdmin(req: Request): boolean {
   const auth = req.headers.authorization || '';
@@ -25,13 +48,6 @@ app.get(['/dashboard/admin', '/api/dashboard/admin'], async (req: Request, res: 
   }
 
   try {
-    const { getSupabase, isSupabaseConfigured } = await import('../server/supabase');
-
-    if (!isSupabaseConfigured()) {
-      res.status(503).json({ error: 'Supabase não configurado no ambiente da Vercel.' });
-      return;
-    }
-
     const supabase = getSupabase();
     const period = String(req.query.period || 'month');
     const [salesResult, productsResult, batchesResult, financeResult] = await Promise.all([
