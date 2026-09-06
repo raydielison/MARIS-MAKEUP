@@ -33,7 +33,16 @@ function isAdmin(req: Request): boolean {
   return token === 'token_admin_demo' || token.startsWith('token_admin_');
 }
 
-// Vercel rewrites /api and /api/ to this function. Keep the root endpoint valid.
+// Vercel can invoke this Express app through /api or /api/[...path].
+// Normalize the API root so /api and /api/ never fall through to Express 404.
+app.use((req: Request, res: Response, next) => {
+  if (req.method === 'GET' && /^\/api\/?$/.test(req.path)) {
+    res.status(200).json({ status: 'ok', service: 'MARIS MAKEUP API' });
+    return;
+  }
+  next();
+});
+
 app.get('/', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', service: 'MARIS MAKEUP API' });
 });
