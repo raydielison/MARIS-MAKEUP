@@ -1,10 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "express",
+  "version": 2,
   "buildCommand": "npm run build",
   "functions": {
     "api/index.js": {
-      "includeFiles": ["dist/**"]
+      "includeFiles": "dist/**"
     }
   },
   "rewrites": [
