@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { getSupabase, isSupabaseConfigured } from '../server/supabase.ts';
+import { getSupabase, isSupabaseConfigured } from '../server/supabase';
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
