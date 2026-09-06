@@ -1,26 +1,27 @@
-import express from 'express';
-import { apiRouter } from '../server/api.ts';
+import express, { Request, Response } from 'express';
 import { getSupabase, isSupabaseConfigured } from '../server/supabase.ts';
 
 const app = express();
-
 app.use(express.json({ limit: '10mb' }));
 
-/**
- * Dashboard serverless path.
- * The production database is Supabase; do not use data/db.json for dashboard
- * calculations because Vercel's filesystem is ephemeral.
- */
-app.get(['/dashboard/admin', '/api/dashboard/admin'], async (req, res, next) => {
+function isAdmin(req: Request): boolean {
   const auth = req.headers.authorization || '';
-  if (!auth.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Token de autenticação não fornecido' });
-    return;
-  }
-
+  if (!auth.startsWith('Bearer ')) return false;
   const token = auth.slice('Bearer '.length).trim();
-  if (!token.startsWith('token_admin_') && token !== 'token_admin_demo') {
-    res.status(403).json({ error: 'Acesso Negado: Esta operação requer privilégios de Administrador.' });
+  return token === 'token_admin_demo' || token.startsWith('token_admin_');
+}
+
+app.get('/health', (_req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/api/health', (_req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get(['/dashboard/admin', '/api/dashboard/admin'], async (req: Request, res: Response) => {
+  if (!isAdmin(req)) {
+    res.status(401).json({ error: 'Token de autenticação não fornecido ou inválido' });
     return;
   }
 
@@ -32,136 +33,86 @@ app.get(['/dashboard/admin', '/api/dashboard/admin'], async (req, res, next) => 
 
     const supabase = getSupabase();
     const period = String(req.query.period || 'month');
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-
-    const readTable = async (table: string) => {
-      const result = await supabase.from(table).select('*');
-      if (result.error) {
-        console.error(`Supabase ${table}:`, result.error.message);
-        return [] as any[];
-      }
-      return (result.data || []) as any[];
-    };
-
-    const [sales, products, batches, payables] = await Promise.all([
-      readTable('sales'),
-      readTable('products'),
-      readTable('batches'),
-      readTable('accounts_payable'),
+    const [salesResult, productsResult, batchesResult, financeResult] = await Promise.all([
+      supabase.from('sales').select('*'),
+      supabase.from('products').select('*'),
+      supabase.from('batches').select('*'),
+      supabase.from('financial_transactions').select('*'),
     ]);
 
-    const value = (row: any, ...keys: string[]) => {
-      for (const key of keys) {
-        if (row?.[key] !== undefined && row?.[key] !== null) return row[key];
-      }
-      return undefined;
-    };
+    if (salesResult.error) throw new Error(`Supabase sales: ${salesResult.error.message}`);
+    if (productsResult.error) throw new Error(`Supabase products: ${productsResult.error.message}`);
 
-    const number = (row: any, ...keys: string[]) => Number(value(row, ...keys) || 0);
-    const dateOf = (row: any) => String(value(row, 'date', 'sale_date', 'purchase_date', 'created_at', 'createdAt') || '').slice(0, 10);
-
-    const completedSales = sales.filter((s) => String(value(s, 'status') || 'FINALIZADA').toUpperCase() === 'FINALIZADA');
-
-    const daysBack = period === 'today' ? 0 : period === 'yesterday' ? 1 : period === '7days' ? 7 : 30;
+    const sales: any[] = salesResult.data || [];
+    const products: any[] = productsResult.data || [];
+    const batches: any[] = batchesResult.error ? [] : (batchesResult.data || []);
+    const finance: any[] = financeResult.error ? [] : (financeResult.data || []);
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+    const dateOf = (row: any) => String(row?.date ?? row?.sale_date ?? row?.created_at ?? '').slice(0, 10);
+    const amountOf = (row: any) => Number(row?.total ?? row?.total_amount ?? row?.amount ?? 0) || 0;
+    const costOf = (row: any) => Number(row?.costTotal ?? row?.cost_total ?? row?.cost_of_goods_sold ?? 0) || 0;
+    const completed = sales.filter((s) => String(s?.status ?? 'FINALIZADA').toUpperCase() === 'FINALIZADA');
+    const daysAgo = period === 'today' ? 0 : period === 'yesterday' ? 1 : period === '7days' ? 7 : 30;
     const threshold = new Date(today);
-    threshold.setDate(threshold.getDate() - daysBack);
     threshold.setHours(0, 0, 0, 0);
-    const thresholdStr = threshold.toISOString().split('T')[0];
+    threshold.setDate(threshold.getDate() - daysAgo);
+    const thresholdStr = threshold.toISOString().slice(0, 10);
+    let selected = completed;
+    if (period === 'today') selected = completed.filter((s) => dateOf(s) === todayStr);
+    else if (period === 'yesterday') selected = completed.filter((s) => dateOf(s) === thresholdStr);
+    else selected = completed.filter((s) => dateOf(s) >= thresholdStr && dateOf(s) <= todayStr);
 
-    let periodSales = completedSales;
-    if (period === 'today') {
-      periodSales = completedSales.filter((s) => dateOf(s) === todayStr);
-    } else if (period === 'yesterday') {
-      periodSales = completedSales.filter((s) => dateOf(s) === thresholdStr);
-    } else {
-      periodSales = completedSales.filter((s) => dateOf(s) >= thresholdStr && dateOf(s) <= todayStr);
-    }
-
-    const totalOf = (s: any) => number(s, 'total', 'total_amount', 'amount');
-    const costOf = (s: any) => number(s, 'costTotal', 'cost_total', 'cost_of_goods_sold');
-    const revenueSelectedPeriod = periodSales.reduce((sum, s) => sum + totalOf(s), 0);
-    const revenueToday = completedSales.filter((s) => dateOf(s) === todayStr).reduce((sum, s) => sum + totalOf(s), 0);
-    const revenueWeek = completedSales.filter((s) => dateOf(s) >= new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0]).reduce((sum, s) => sum + totalOf(s), 0);
-    const revenueMonth = completedSales.filter((s) => dateOf(s) >= new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]).reduce((sum, s) => sum + totalOf(s), 0);
-    const costOfGoodsSold = periodSales.reduce((sum, s) => sum + costOf(s), 0);
-    const salesCount = periodSales.length;
+    const revenueToday = completed.filter((s) => dateOf(s) === todayStr).reduce((a, s) => a + amountOf(s), 0);
+    const weekThreshold = new Date(today); weekThreshold.setDate(weekThreshold.getDate() - 7);
+    const monthThreshold = new Date(today); monthThreshold.setDate(monthThreshold.getDate() - 30);
+    const revenueWeek = completed.filter((s) => dateOf(s) >= weekThreshold.toISOString().slice(0, 10)).reduce((a, s) => a + amountOf(s), 0);
+    const revenueMonth = completed.filter((s) => dateOf(s) >= monthThreshold.toISOString().slice(0, 10)).reduce((a, s) => a + amountOf(s), 0);
+    const revenueSelectedPeriod = selected.reduce((a, s) => a + amountOf(s), 0);
+    const costOfGoodsSold = selected.reduce((a, s) => a + costOf(s), 0);
     const grossProfit = revenueSelectedPeriod - costOfGoodsSold;
-
-    const lowStock = products.filter((p) => {
-      const stock = number(p, 'currentStock', 'current_stock', 'stock');
-      const min = number(p, 'minStock', 'min_stock');
-      return stock > 0 && stock <= min;
-    });
-    const outOfStock = products.filter((p) => number(p, 'currentStock', 'current_stock', 'stock') === 0);
-
-    const activeBatches = batches.filter((b) => number(b, 'currentQuantity', 'current_quantity', 'quantity') > 0);
-    const remainingDays = (date: string) => {
-      if (!date) return 999999;
-      const d = new Date(date);
+    const stockOf = (p: any) => Number(p?.currentStock ?? p?.current_stock ?? p?.stock ?? 0) || 0;
+    const minStockOf = (p: any) => Number(p?.minStock ?? p?.min_stock ?? 0) || 0;
+    const lowStock = products.filter((p) => stockOf(p) > 0 && stockOf(p) <= minStockOf(p));
+    const outOfStock = products.filter((p) => stockOf(p) === 0);
+    const daysRemaining = (value: any) => {
+      if (!value) return 999999;
+      const d = new Date(String(value));
+      if (Number.isNaN(d.getTime())) return 999999;
       d.setHours(0, 0, 0, 0);
-      const t = new Date();
-      t.setHours(0, 0, 0, 0);
+      const t = new Date(); t.setHours(0, 0, 0, 0);
       return Math.ceil((d.getTime() - t.getTime()) / 86400000);
     };
-    const expired = activeBatches.filter((b) => remainingDays(String(value(b, 'expiryDate', 'expiry_date') || '')) < 0);
-    const expiring7 = activeBatches.filter((b) => {
-      const d = remainingDays(String(value(b, 'expiryDate', 'expiry_date') || ''));
-      return d >= 0 && d <= 7;
-    });
-    const overdue = payables.filter((p) => String(value(p, 'status') || '').toUpperCase() === 'PENDENTE' && remainingDays(String(value(p, 'dueDate', 'due_date') || '')) < 0);
+    const activeBatches = batches.filter((b) => Number(b?.currentQuantity ?? b?.current_quantity ?? b?.quantity ?? 0) > 0);
+    const expired = activeBatches.filter((b) => daysRemaining(b?.expiryDate ?? b?.expiry_date) < 0);
+    const expiring7 = activeBatches.filter((b) => { const d = daysRemaining(b?.expiryDate ?? b?.expiry_date); return d >= 0 && d <= 7; });
+    const overdue = finance.filter((p) => String(p?.status ?? '').toUpperCase() === 'PENDENTE' && daysRemaining(p?.dueDate ?? p?.due_date) < 0);
 
-    res.json({
+    res.status(200).json({
       metrics: {
-        period,
-        revenueToday,
-        revenueWeek,
-        revenueMonth,
-        revenueSelectedPeriod,
-        salesCount,
-        averageTicket: salesCount ? Number((revenueSelectedPeriod / salesCount).toFixed(2)) : 0,
-        costOfGoodsSold,
-        grossProfit,
-        expensesTotal: 0,
-        estimatedNetProfit: grossProfit,
-        lowStockCount: lowStock.length,
-        outOfStockCount: outOfStock.length,
+        period, revenueToday, revenueWeek, revenueMonth, revenueSelectedPeriod,
+        salesCount: selected.length,
+        averageTicket: selected.length ? Number((revenueSelectedPeriod / selected.length).toFixed(2)) : 0,
+        costOfGoodsSold, grossProfit, expensesTotal: 0, estimatedNetProfit: grossProfit,
+        lowStockCount: lowStock.length, outOfStockCount: outOfStock.length,
         expiringIn7DaysCount: expiring7.length,
-        expiringIn30DaysCount: activeBatches.filter((b) => { const d = remainingDays(String(value(b, 'expiryDate', 'expiry_date') || '')); return d >= 0 && d <= 30; }).length,
-        expiredCount: expired.length,
-        overduePayablesCount: overdue.length,
-        upcomingPayablesCount: payables.filter((p) => { const d = remainingDays(String(value(p, 'dueDate', 'due_date') || '')); return String(value(p, 'status') || '').toUpperCase() === 'PENDENTE' && d >= 0 && d <= 7; }).length,
-        stagnantProductsCount: 0,
+        expiringIn30DaysCount: activeBatches.filter((b) => { const d = daysRemaining(b?.expiryDate ?? b?.expiry_date); return d >= 0 && d <= 30; }).length,
+        expiredCount: expired.length, overduePayablesCount: overdue.length,
+        upcomingPayablesCount: 0, stagnantProductsCount: 0,
       },
       alerts: {
-        lowStock: lowStock.map((p) => ({ id: value(p, 'id'), name: value(p, 'name'), boxSku: value(p, 'boxSku', 'box_sku', 'sku'), individualCode: value(p, 'individualCode', 'individual_code', 'barcode'), stock: number(p, 'currentStock', 'current_stock', 'stock'), min: number(p, 'minStock', 'min_stock') })),
-        outOfStock: outOfStock.map((p) => ({ id: value(p, 'id'), name: value(p, 'name'), boxSku: value(p, 'boxSku', 'box_sku', 'sku'), individualCode: value(p, 'individualCode', 'individual_code', 'barcode') })),
-        expired: expired.map((b) => ({ batchNumber: value(b, 'batchNumber', 'batch_number'), productName: products.find((p) => String(value(p, 'id')) === String(value(b, 'productId', 'product_id')))?.name, days: remainingDays(String(value(b, 'expiryDate', 'expiry_date') || '')) })),
-        expiringSoon: expiring7.map((b) => ({ batchNumber: value(b, 'batchNumber', 'batch_number'), productName: products.find((p) => String(value(p, 'id')) === String(value(b, 'productId', 'product_id')))?.name, days: remainingDays(String(value(b, 'expiryDate', 'expiry_date') || '')) })),
-        overduePayables: overdue.map((p) => ({ description: value(p, 'description'), amount: number(p, 'amount'), dueDate: value(p, 'dueDate', 'due_date') })),
+        lowStock: lowStock.map((p) => ({ id: p.id, name: p.name, boxSku: p.boxSku ?? p.box_sku ?? p.sku, individualCode: p.individualCode ?? p.individual_code ?? p.barcode, stock: stockOf(p), min: minStockOf(p) })),
+        outOfStock: outOfStock.map((p) => ({ id: p.id, name: p.name, boxSku: p.boxSku ?? p.box_sku ?? p.sku, individualCode: p.individualCode ?? p.individual_code ?? p.barcode })),
+        expired: expired.map((b) => ({ batchNumber: b.batchNumber ?? b.batch_number, productName: products.find((p) => String(p.id) === String(b.productId ?? b.product_id))?.name, days: daysRemaining(b.expiryDate ?? b.expiry_date) })),
+        expiringSoon: expiring7.map((b) => ({ batchNumber: b.batchNumber ?? b.batch_number, productName: products.find((p) => String(p.id) === String(b.productId ?? b.product_id))?.name, days: daysRemaining(b.expiryDate ?? b.expiry_date) })),
+        overduePayables: overdue.map((p) => ({ description: p.description, amount: p.amount ?? p.value ?? 0, dueDate: p.dueDate ?? p.due_date })),
       },
-      charts: {
-        topProducts: [],
-        salesBySeller: [],
-        salesByPaymentMethod: {},
-      },
+      charts: { topProducts: [], salesBySeller: [], salesByPaymentMethod: {} },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro no dashboard Supabase:', error);
-    next(error);
+    res.status(500).json({ error: error?.message || 'Erro ao carregar dashboard', source: 'supabase' });
   }
-});
-
-// Existing API routes.
-app.use('/', apiRouter);
-app.use('/api', apiRouter);
-
-app.get('/health', (_req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-app.get('/api/health', (_req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 export default app;
