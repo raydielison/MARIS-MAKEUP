@@ -1,0 +1,6 @@
+{
+  "name": "MARIS MAKEUP",
+  "description": "Sistema completo de gestão de estoque, vendas PDV, controle de validade e financeiro para a loja MARIS MAKEUP.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

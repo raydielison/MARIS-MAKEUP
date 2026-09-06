@@ -1,0 +1,171 @@
+{
+  "users": [
+    {
+      "id": "usr_admin",
+      "name": "Marina (Administradora)",
+      "email": "marina@makeup.com.br",
+      "password": "marinamakeup",
+      "role": "ADMIN",
+      "active": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
+      "phone": "(11) 98765-4321",
+      "createdAt": "2026-05-07"
+    },
+    {
+      "id": "usr_vendedor_1",
+      "name": "Vendedora MARIS",
+      "email": "vendedor@makeup.com.br",
+      "password": "vendedormakeup",
+      "role": "VENDEDOR",
+      "active": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
+      "phone": "(11) 97654-3210",
+      "createdAt": "2026-06-06"
+    },
+    {
+      "id": "usr_vendedor_2",
+      "name": "Beatriz Souza",
+      "email": "beatriz@makeup.com.br",
+      "password": "vendedormakeup",
+      "role": "VENDEDOR",
+      "active": true,
+      "avatarUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
+      "phone": "(11) 96543-2109",
+      "createdAt": "2026-07-06"
+    }
+  ],
+  "brands": [
+    {
+      "id": "b_bt",
+      "name": "Bruna Tavares",
+      "description": "Linha profissional nacional de alta performance",
+      "active": true
+    },
+    {
+      "id": "b_boca",
+      "name": "Boca Rosa Beauty",
+      "description": "Produtos icônicos de maquiagem e pele",
+      "active": true
+    },
+    {
+      "id": "b_fran",
+      "name": "Franciny Ehlke",
+      "description": "Coleção Mboom com produtos inovadores",
+      "active": true
+    },
+    {
+      "id": "b_mari",
+      "name": "Mari Maria Makeup",
+      "description": "Bases aveludadas, batons e pincéis",
+      "active": true
+    },
+    {
+      "id": "b_ruby",
+      "name": "Ruby Rose / Melu",
+      "description": "Excelente custo-benefício e tendências",
+      "active": true
+    },
+    {
+      "id": "b_vizzela",
+      "name": "Vizzela Cosméticos",
+      "description": "Marca 100% vegana e cruelty free",
+      "active": true
+    },
+    {
+      "id": "b_mac",
+      "name": "MAC Cosmetics",
+      "description": "Referência mundial em maquiagem profissional",
+      "active": true
+    }
+  ],
+  "categories": [
+    {
+      "id": "cat_face",
+      "name": "Pele & Rosto",
+      "slug": "pele-rosto",
+      "description": "Bases, corretivos, pós e blushes",
+      "active": true
+    },
+    {
+      "id": "cat_olhos",
+      "name": "Olhos & Sobrancelhas",
+      "slug": "olhos",
+      "description": "Sombras, rímel, delineadores e lápis",
+      "active": true
+    },
+    {
+      "id": "cat_labios",
+      "name": "Lábios",
+      "slug": "labios",
+      "description": "Batons, glosses, lip tints e lápis labial",
+      "active": true
+    },
+    {
+      "id": "cat_skincare",
+      "name": "Preparação & Fixação",
+      "slug": "preparacao-fixacao",
+      "description": "Brumas, primers e fixadores",
+      "active": true
+    },
+    {
+      "id": "cat_acessorios",
+      "name": "Acessórios & Pincéis",
+      "slug": "acessorios",
+      "description": "Esponjas, pincéis e curvex",
+      "active": true
+    }
+  ],
+  "suppliers": [],
+  "products": [],
+  "batches": [],
+  "stockMovements": [],
+  "customers": [],
+  "sales": [],
+  "purchases": [],
+  "accountsPayable": [],
+  "accountsReceivable": [],
+  "cashMovements": [],
+  "auditLogs": [
+    {
+      "userId": "usr_admin",
+      "userName": "Marina (Administradora)",
+      "userRole": "ADMIN",
+      "action": "LOGIN",
+      "entity": "SESSÃO",
+      "entityId": "usr_admin",
+      "description": "Marina (Administradora) (ADMIN) realizou login no sistema.",
+      "id": "audit_1788642952877_0drr",
+      "timestamp": "2026-09-05 21:15:52"
+    },
+    {
+      "id": "audit_clean_1788642858204",
+      "userId": "usr_admin",
+      "userName": "Marina (Administradora)",
+      "userRole": "ADMIN",
+      "action": "SISTEMA_LIMPO",
+      "entity": "SISTEMA",
+      "entityId": "sys_maris",
+      "description": "Base de dados limpa. Todos os dados fictícios foram removidos para entrada de dados reais.",
+      "timestamp": "2026-09-05 21:14:18"
+    }
+  ],
+  "settings": {
+    "storeName": "MARIS MAKEUP",
+    "tradeName": "MARIS MAKEUP - Cosméticos & Beleza",
+    "cnpj": "33.987.654/0001-22",
+    "phone": "(11) 3456-7890",
+    "whatsapp": "(11) 98765-4321",
+    "email": "contato@marismakeup.com.br",
+    "address": "Av. Paulista, 1200 - Loja 15 - Bela Vista, São Paulo - SP",
+    "receiptFooter": "Obrigada pela preferência! Trocas em até 7 dias com embalagem lacrada.",
+    "defaultMinStock": 5,
+    "validityAlertDays": [
+      7,
+      30,
+      60,
+      90
+    ],
+    "maxDiscountAllowedPercent": 15,
+    "autoFefoStockDeduction": true
+  }
+}
