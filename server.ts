@@ -18,21 +18,36 @@ app.use('/api', (err: any, _req: express.Request, res: express.Response, _next: 
 });
 
 const distPath = path.join(process.cwd(), 'dist');
-app.use(express.static(distPath));
 
-app.get('*', (req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    return res.status(404).json({ error: 'Endpoint da API não encontrado' });
+async function startServer() {
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    const { createServer: createViteServer } = await import('vite');
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa',
+    });
+    app.use(vite.middlewares);
+  } else {
+    app.use(express.static(distPath));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'Endpoint da API não encontrado' });
+      }
+      return res.sendFile(path.join(distPath, 'index.html'), (error) => {
+        if (error) next(error);
+      });
+    });
   }
-  return res.sendFile(path.join(distPath, 'index.html'), (error) => {
-    if (error) next(error);
-  });
-});
 
-if (!process.env.VERCEL) {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-  });
+  if (!process.env.VERCEL) {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on http://0.0.0.0:${PORT}`);
+    });
+  }
 }
+
+startServer().catch((err) => {
+  console.error('Erro ao inicializar servidor:', err);
+});
 
 export default app;

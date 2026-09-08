@@ -36,12 +36,18 @@ export interface DatabaseSchema {
   settings: StoreSettings;
 }
 
-const DATA_DIR = path.join(process.cwd(), 'data');
+const isVercel = Boolean(process.env.VERCEL);
+const DATA_DIR = isVercel ? path.join('/tmp', 'data') : path.join(process.cwd(), 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
+const BUNDLED_DB_FILE = path.join(process.cwd(), 'data', 'db.json');
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+// Ensure data directory exists safely
+try {
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+} catch (err) {
+  console.warn('Notice: Local data dir not writable, memory persistence active:', err);
 }
 
 // Initial clean seed data generator - Ready for real data registration
@@ -231,11 +237,16 @@ class RelationalDatabase {
     try {
       if (fs.existsSync(DB_FILE)) {
         const raw = fs.readFileSync(DB_FILE, 'utf-8');
+        return JSON.parse(raw);
+      }
+      if (fs.existsSync(BUNDLED_DB_FILE)) {
+        const raw = fs.readFileSync(BUNDLED_DB_FILE, 'utf-8');
         const parsed = JSON.parse(raw);
+        this.saveData(parsed);
         return parsed;
       }
     } catch (err) {
-      console.error('Error loading database from disk, creating seed data:', err);
+      console.warn('Error loading database from disk, creating seed data:', err);
     }
     const seed = getInitialSeedData();
     this.saveData(seed);
