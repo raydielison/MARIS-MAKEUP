@@ -53,8 +53,20 @@ export interface StockBatch {
   createdAt: string;
 }
 
+export interface KitItem {
+  id?: string;
+  name: string;
+  sku: string;
+  batchNumber?: string;
+  expiryDate?: string;
+  brandName?: string;
+  barcode?: string;
+  shade?: string;
+}
+
 export interface Product {
   id: string;
+  productType?: 'UNIDADE' | 'KIT';
   sku: string; // SKU geral / compatibilidade
   boxSku?: string; // Número SKU que veio na caixa (embalagem de fábrica/fornecedor)
   storeIdCode?: string; // Número ID da loja para identificação e venda
@@ -85,6 +97,8 @@ export interface Product {
   active: boolean;
   trackBatches: boolean;
   batches?: StockBatch[];
+  kitItems?: KitItem[];
+  kitItemCount?: number;
   createdAt: string;
   updatedAt: string;
 }

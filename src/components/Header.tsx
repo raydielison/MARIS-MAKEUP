@@ -53,8 +53,13 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         <div className="flex items-center space-x-2.5 cursor-pointer" onClick={() => onNavigate('dashboard')}>
-          <div className="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center font-bold text-white text-base shadow-xs">
-            M
+          <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center border border-pink-200 shadow-xs bg-pink-50">
+            <img
+              src="/favicon.png"
+              alt="Logo Maris Makeup"
+              className="w-full h-full object-contain"
+              referrerPolicy="no-referrer"
+            />
           </div>
           <div>
             <div className="flex items-center space-x-2">
@@ -208,11 +213,9 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Profile & Quick Role Switcher */}
         <div className="flex items-center space-x-2 bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5">
-          <img
-            src={user?.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150'}
-            alt={user?.name}
-            className="w-7 h-7 rounded-full object-cover ring-2 ring-pink-500"
-          />
+          <div className="w-7 h-7 rounded-full bg-pink-100 text-pink-700 font-bold text-xs flex items-center justify-center border border-pink-300 uppercase shadow-2xs">
+            {user?.name ? user.name.slice(0, 2).toUpperCase() : 'US'}
+          </div>
           <div className="hidden lg:block text-left">
             <div className="text-xs font-semibold text-slate-900 leading-tight">{user?.name}</div>
             <div className="flex items-center space-x-1">

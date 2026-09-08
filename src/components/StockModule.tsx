@@ -124,7 +124,15 @@ export const StockModule: React.FC = () => {
         (p.purchaseLocation && p.purchaseLocation.toLowerCase().includes(q)) ||
         p.barcode.includes(q) ||
         (p.shade && p.shade.toLowerCase().includes(q)) ||
-        (p.brandName && p.brandName.toLowerCase().includes(q));
+        (p.brandName && p.brandName.toLowerCase().includes(q)) ||
+        (p.kitItems &&
+          p.kitItems.some(
+            (it) =>
+              it.name.toLowerCase().includes(q) ||
+              it.sku.toLowerCase().includes(q) ||
+              (it.brandName && it.brandName.toLowerCase().includes(q)) ||
+              (it.batchNumber && it.batchNumber.toLowerCase().includes(q))
+          ));
 
       const skuKey = (p.boxSku || p.sku || '').trim().toLowerCase();
       const skuTotal = skuTotalStockMap.get(skuKey) ?? p.currentStock;
@@ -320,8 +328,21 @@ export const StockModule: React.FC = () => {
                               />
                             )}
                             <div>
-                              <div>{p.name}</div>
-                              {p.shade && <div className="text-[11px] text-slate-500">Cor: {p.shade}</div>}
+                              <div className="flex items-center space-x-1.5 flex-wrap">
+                                <span>{p.name}</span>
+                                {p.productType === 'KIT' && (
+                                  <span className="text-[10px] font-bold bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded border border-purple-200">
+                                    KIT ({p.kitItemCount || (p.kitItems && p.kitItems.length) || 0} itens)
+                                  </span>
+                                )}
+                              </div>
+                              {p.productType === 'KIT' && p.kitItems && p.kitItems.length > 0 ? (
+                                <div className="text-[10px] text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 mt-0.5 max-w-[240px] truncate">
+                                  {p.kitItems.map((ki) => `${ki.name} (${ki.sku})`).join(' • ')}
+                                </div>
+                              ) : (
+                                p.shade && <div className="text-[11px] text-slate-500">Cor: {p.shade}</div>
+                              )}
                               {p.expiryDate && (
                                 <div className="text-[10px] text-slate-400 flex items-center space-x-1 mt-0.5">
                                   <Calendar className="w-2.5 h-2.5" />

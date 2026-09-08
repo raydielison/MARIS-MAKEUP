@@ -7,7 +7,7 @@
       "password": "marinamakeup",
       "role": "ADMIN",
       "active": true,
-      "avatarUrl": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
+      "avatarUrl": "",
       "phone": "(11) 98765-4321",
       "createdAt": "2026-05-07"
     },
@@ -18,7 +18,7 @@
       "password": "vendedormakeup",
       "role": "VENDEDOR",
       "active": true,
-      "avatarUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
+      "avatarUrl": "",
       "phone": "(11) 97654-3210",
       "createdAt": "2026-06-06"
     },
@@ -29,7 +29,7 @@
       "password": "vendedormakeup",
       "role": "VENDEDOR",
       "active": true,
-      "avatarUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
+      "avatarUrl": "",
       "phone": "(11) 96543-2109",
       "createdAt": "2026-07-06"
     }

@@ -266,11 +266,9 @@ export const SettingsModule: React.FC = () => {
                 className="p-3.5 bg-slate-50 rounded-lg border border-slate-200 flex items-center justify-between"
               >
                 <div className="flex items-center space-x-3">
-                  <img
-                    src={u.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100'}
-                    alt={u.name}
-                    className="w-8 h-8 rounded-full object-cover ring-1 ring-slate-300"
-                  />
+                  <div className="w-8 h-8 rounded-full bg-pink-100 text-pink-700 font-bold text-xs flex items-center justify-center border border-pink-200 uppercase">
+                    {u.name ? u.name.slice(0, 2).toUpperCase() : 'US'}
+                  </div>
                   <div>
                     <div className="font-bold text-xs text-slate-900">{u.name}</div>
                     <div className="text-[11px] text-slate-500">{u.email}</div>

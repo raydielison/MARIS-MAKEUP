@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { Sale } from '../types.ts';
+import { ThermalReceiptModal } from './ThermalReceiptModal.tsx';
 import {
   ReceiptText,
   Search,
@@ -30,6 +31,7 @@ export const SalesHistoryModule: React.FC = () => {
 
   // Modals
   const [viewingSale, setViewingSale] = useState<Sale | null>(null);
+  const [receiptSale, setReceiptSale] = useState<Sale | null>(null);
   const [cancellingSale, setCancellingSale] = useState<Sale | null>(null);
   const [cancelReason, setCancelReason] = useState<string>('');
   const [submittingCancel, setSubmittingCancel] = useState<boolean>(false);
@@ -200,10 +202,19 @@ export const SalesHistoryModule: React.FC = () => {
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end space-x-1">
                         <button
+                          id={`btn-receipt-sale-${s.id}`}
+                          onClick={() => setReceiptSale(s)}
+                          className="p-1.5 rounded-md text-slate-400 hover:text-pink-600 hover:bg-pink-50 transition"
+                          title="Imprimir Cupom Não Fiscal"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+
+                        <button
                           id={`btn-view-sale-${s.id}`}
                           onClick={() => setViewingSale(s)}
                           className="p-1.5 rounded-md text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition"
-                          title="Ver detalhes e comprovante"
+                          title="Ver detalhes da venda"
                         >
                           <Eye className="w-4 h-4" />
                         </button>
@@ -332,15 +343,16 @@ export const SalesHistoryModule: React.FC = () => {
             {/* Actions */}
             <div className="flex items-center space-x-2 pt-2 border-t border-slate-200">
               <button
-                onClick={() => window.print()}
-                className="flex-1 py-2 rounded-md bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-semibold flex items-center justify-center space-x-1.5"
+                id="btn-reprint-receipt-from-details"
+                onClick={() => setReceiptSale(viewingSale)}
+                className="flex-1 py-2 rounded-md bg-pink-50 hover:bg-pink-100 border border-pink-200 text-pink-700 text-xs font-semibold flex items-center justify-center space-x-1.5 transition"
               >
                 <Printer className="w-4 h-4" />
-                <span>Reimprimir Comprovante</span>
+                <span>Imprimir Cupom Não Fiscal</span>
               </button>
               <button
                 onClick={() => setViewingSale(null)}
-                className="px-4 py-2 rounded-md bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold shadow-xs"
+                className="px-4 py-2 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 transition"
               >
                 Fechar
               </button>
@@ -409,6 +421,15 @@ export const SalesHistoryModule: React.FC = () => {
             </div>
           </form>
         </div>
+      )}
+
+      {/* MODAL 3: THERMAL RECEIPT (CUPOM NÃO FISCAL) */}
+      {receiptSale && (
+        <ThermalReceiptModal
+          sale={receiptSale}
+          onClose={() => setReceiptSale(null)}
+          title={`Cupom Não Fiscal - Venda #${receiptSale.saleNumber}`}
+        />
       )}
     </div>
   );

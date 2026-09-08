@@ -115,7 +115,13 @@ ${footerMsg}`;
           className="bg-slate-50 text-slate-900 p-4 rounded-xl shadow-inner font-mono text-[11px] space-y-2 border border-slate-300 max-h-[60vh] overflow-y-auto"
         >
           {/* Store Info */}
-          <div className="text-center pb-2">
+          <div className="text-center pb-2 flex flex-col items-center">
+            <img
+              src="/favicon.png"
+              alt="Logo Maris Makeup"
+              className="w-10 h-10 object-contain mb-1 rounded-md"
+              referrerPolicy="no-referrer"
+            />
             <div className="font-extrabold text-sm tracking-wider text-slate-950 uppercase">
               {storeName}
             </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { api } from '../services/api.ts';
 import { useAuth } from '../context/AuthContext.tsx';
 import { Product, Customer, Sale, PaymentMethod } from '../types.ts';
+import { ThermalReceiptModal } from './ThermalReceiptModal.tsx';
 import {
   Search,
   ShoppingCart,
@@ -110,7 +111,17 @@ export const PDV: React.FC<PDVProps> = ({ onSaleCompleted, onNavigate }) => {
         (p.individualCode && p.individualCode.toLowerCase().includes(q)) ||
         p.barcode.includes(q) ||
         (p.shade && p.shade.toLowerCase().includes(q)) ||
-        (p.brandName && p.brandName.toLowerCase().includes(q));
+        (p.brandName && p.brandName.toLowerCase().includes(q)) ||
+        (p.kitItems &&
+          p.kitItems.some(
+            (it) =>
+              it.name.toLowerCase().includes(q) ||
+              it.sku.toLowerCase().includes(q) ||
+              (it.barcode && it.barcode.toLowerCase().includes(q)) ||
+              (it.brandName && it.brandName.toLowerCase().includes(q)) ||
+              (it.batchNumber && it.batchNumber.toLowerCase().includes(q)) ||
+              (it.shade && it.shade.toLowerCase().includes(q))
+          ));
 
       return matchCategory && matchQuery;
     })
@@ -131,6 +142,19 @@ export const PDV: React.FC<PDVProps> = ({ onSaleCompleted, onNavigate }) => {
       const q = searchQuery.trim().toLowerCase();
       if (!q) return;
 
+      const isProductMatchingCode = (p: Product) =>
+        (p.storeIdCode && p.storeIdCode.toLowerCase() === q) ||
+        (p.individualCode && p.individualCode.toLowerCase() === q) ||
+        p.barcode.toLowerCase() === q ||
+        (p.boxSku && p.boxSku.toLowerCase() === q) ||
+        p.sku.toLowerCase() === q ||
+        (p.kitItems &&
+          p.kitItems.some(
+            (it) =>
+              it.sku.toLowerCase() === q ||
+              (it.barcode && it.barcode.toLowerCase() === q)
+          ));
+
       // Exact match check prioritizing available stock not already full in cart
       const exactMatch =
         products.find(
@@ -138,20 +162,12 @@ export const PDV: React.FC<PDVProps> = ({ onSaleCompleted, onNavigate }) => {
             p.active &&
             p.currentStock > 0 &&
             !cart.some((c) => c.product.id === p.id && c.quantity >= p.currentStock) &&
-            ((p.storeIdCode && p.storeIdCode.toLowerCase() === q) ||
-              (p.individualCode && p.individualCode.toLowerCase() === q) ||
-              p.barcode.toLowerCase() === q ||
-              (p.boxSku && p.boxSku.toLowerCase() === q) ||
-              p.sku.toLowerCase() === q)
+            isProductMatchingCode(p)
         ) ||
         products.find(
           (p) =>
             p.active &&
-            ((p.storeIdCode && p.storeIdCode.toLowerCase() === q) ||
-              (p.individualCode && p.individualCode.toLowerCase() === q) ||
-              p.barcode.toLowerCase() === q ||
-              (p.boxSku && p.boxSku.toLowerCase() === q) ||
-              p.sku.toLowerCase() === q)
+            isProductMatchingCode(p)
         );
 
       if (exactMatch) {
@@ -494,14 +510,19 @@ export const PDV: React.FC<PDVProps> = ({ onSaleCompleted, onNavigate }) => {
                     </div>
                   )}
 
-                  {/* SKU da Caixa & Código ID Individual */}
+                  {/* SKU da Caixa & Código ID da Loja */}
                   <div className="mt-1.5 flex flex-wrap items-center gap-1 text-[10px] font-mono">
                     <span className="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200" title="SKU da Caixa original">
                       Cx: {p.boxSku || p.sku}
                     </span>
-                    <span className="bg-pink-50 text-pink-700 px-1.5 py-0.5 rounded font-bold border border-pink-200" title="Código ID Individual de Venda">
-                      ID: {p.individualCode || p.barcode}
+                    <span className="bg-pink-50 text-pink-700 px-1.5 py-0.5 rounded font-bold border border-pink-200" title="Código ID da Loja para Venda Única">
+                      ID: {p.storeIdCode || p.individualCode || p.barcode}
                     </span>
+                    {p.productType === 'KIT' && (
+                      <span className="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded font-bold border border-purple-200" title="Kit / Conjunto Fechado">
+                        KIT ({p.kitItemCount || (p.kitItems && p.kitItems.length) || 'Multi'} itens)
+                      </span>
+                    )}
                   </div>
 
                   {isLowStock && (
@@ -649,10 +670,20 @@ export const PDV: React.FC<PDVProps> = ({ onSaleCompleted, onNavigate }) => {
               className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between gap-2"
             >
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold text-slate-900 truncate">{item.product.name}</div>
+                <div className="text-xs font-semibold text-slate-900 truncate flex items-center space-x-1.5">
+                  <span className="truncate">{item.product.name}</span>
+                  {item.product.productType === 'KIT' && (
+                    <span className="text-[9px] font-bold bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded shrink-0">
+                      KIT ({item.product.kitItemCount || (item.product.kitItems && item.product.kitItems.length) || 0} itens)
+                    </span>
+                  )}
+                </div>
                 <div className="text-[11px] text-slate-500 flex items-center space-x-1.5">
-                  {item.product.shade && <span>{item.product.shade}</span>}
+                  <span className="font-mono text-[10px] text-pink-600 font-bold">
+                    ID: {item.product.storeIdCode || item.product.individualCode}
+                  </span>
                   <span>•</span>
+                  {item.product.shade && <span>{item.product.shade} • </span>}
                   <span>{formatCurrency(item.unitPrice)}</span>
                 </div>
               </div>
@@ -1203,102 +1234,14 @@ export const PDV: React.FC<PDVProps> = ({ onSaleCompleted, onNavigate }) => {
 
       {/* MODAL 3: THERMAL RECEIPT MODAL */}
       {showReceiptModal && completedSale && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-xl w-full max-w-sm p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-200">
-              <div className="flex items-center space-x-2">
-                <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                <span className="font-bold text-slate-900 text-sm">Venda Finalizada com Sucesso!</span>
-              </div>
-              <button
-                onClick={() => setShowReceiptModal(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Thermal Receipt Paper Mockup */}
-            <div className="bg-slate-50 text-slate-900 p-4 rounded-lg shadow-inner font-mono text-[11px] space-y-2 border border-slate-200">
-              <div className="text-center border-b border-dashed border-slate-300 pb-2">
-                <div className="font-bold text-sm tracking-wider text-slate-900">MARIS MAKEUP</div>
-                <div className="text-[10px] text-slate-500">CNPJ: 33.987.654/0001-22</div>
-                <div className="text-[10px] text-slate-500">Av. Paulista, 1200 - São Paulo - SP</div>
-                <div className="text-[10px] font-semibold mt-1 text-slate-800">CUPOM NÃO FISCAL #{completedSale.saleNumber}</div>
-                <div className="text-[9px] text-slate-400">
-                  Data: {completedSale.date} {completedSale.time}
-                </div>
-              </div>
-
-              <div className="text-[10px] text-slate-700">
-                <div>Vendedor: {completedSale.sellerName}</div>
-                <div>Cliente: {completedSale.customerName}</div>
-              </div>
-
-              {/* Items */}
-              <div className="border-t border-b border-dashed border-slate-300 py-1.5 space-y-1">
-                {completedSale.items.map((it, i) => (
-                  <div key={i} className="flex justify-between">
-                    <span className="truncate max-w-[160px]">
-                      {it.quantity}x {it.productName} {it.shade ? `(${it.shade})` : ''}
-                    </span>
-                    <span className="font-semibold">{formatCurrency(it.totalPrice)}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Totals */}
-              <div className="space-y-0.5 text-right pt-1">
-                <div className="flex justify-between text-slate-600">
-                  <span>Subtotal:</span>
-                  <span>{formatCurrency(completedSale.subtotal)}</span>
-                </div>
-                {completedSale.discount > 0 && (
-                  <div className="flex justify-between text-red-600">
-                    <span>Desconto:</span>
-                    <span>-{formatCurrency(completedSale.discount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between font-bold text-xs pt-1 border-t border-slate-200">
-                  <span>TOTAL:</span>
-                  <span className="text-pink-600">{formatCurrency(completedSale.total)}</span>
-                </div>
-                <div className="flex justify-between text-slate-500 text-[10px]">
-                  <span>Forma de Pagto:</span>
-                  <span className="uppercase font-semibold">{completedSale.paymentMethod}</span>
-                </div>
-                {completedSale.change && completedSale.change > 0 ? (
-                  <div className="flex justify-between text-slate-600 text-[10px]">
-                    <span>Troco:</span>
-                    <span>{formatCurrency(completedSale.change)}</span>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="text-center pt-2 text-[9px] text-slate-500 border-t border-dashed border-slate-300">
-                Obrigada pela preferência! Volte sempre ✨
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center space-x-2 pt-2">
-              <button
-                onClick={() => window.print()}
-                className="flex-1 py-2.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold border border-slate-200 flex items-center justify-center space-x-1.5 transition"
-              >
-                <Printer className="w-4 h-4 text-slate-500" />
-                <span>Imprimir Cupom</span>
-              </button>
-              <button
-                id="btn-close-receipt"
-                onClick={() => setShowReceiptModal(false)}
-                className="flex-1 py-2.5 rounded-md bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold shadow-xs transition"
-              >
-                Nova Venda
-              </button>
-            </div>
-          </div>
-        </div>
+        <ThermalReceiptModal
+          sale={completedSale}
+          onClose={() => {
+            setShowReceiptModal(false);
+            setCompletedSale(null);
+          }}
+          title="Venda Finalizada com Sucesso!"
+        />
       )}
     </div>
   );

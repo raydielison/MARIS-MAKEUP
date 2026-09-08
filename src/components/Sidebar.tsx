@@ -140,8 +140,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* Mobile Header with close button */}
         <div className="p-4 border-b border-slate-800 flex items-center justify-between md:hidden">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center font-bold text-white text-lg">
-              M
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center border border-pink-500/30 bg-pink-50 shadow-xs">
+              <img
+                src="/favicon.png"
+                alt="Logo Maris Makeup"
+                className="w-full h-full object-contain"
+                referrerPolicy="no-referrer"
+              />
             </div>
             <span className="text-white font-bold text-base tracking-tight">MARIS MAKEUP</span>
           </div>
@@ -234,11 +239,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {/* User Footer Profile */}
         <div className="p-4 border-t border-slate-800 bg-slate-950 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <img
-              src={user?.avatarUrl || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150'}
-              alt={user?.name}
-              className="w-9 h-9 rounded-full object-cover border-2 border-pink-500"
-            />
+            <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-pink-400 flex items-center justify-center font-bold text-xs uppercase shadow-inner">
+              {user?.name ? user.name.slice(0, 2).toUpperCase() : 'US'}
+            </div>
             <div>
               <p className="text-xs text-white font-medium">{user?.name || 'Ana Oliveira'}</p>
               <p className="text-[10px] text-slate-500">{user?.role === 'ADMIN' ? 'Administradora' : 'Vendedora'}</p>

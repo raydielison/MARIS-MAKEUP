@@ -46,8 +46,13 @@ export const LoginScreen: React.FC = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         {/* Brand Icon */}
-        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-pink-600 text-white shadow-md shadow-pink-500/20 mb-3">
-          <Sparkles className="w-7 h-7" />
+        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-pink-50 border border-pink-200 shadow-md p-1 mb-3 overflow-hidden">
+          <img
+            src="/favicon.png"
+            alt="Logo Maris Makeup"
+            className="w-full h-full object-contain"
+            referrerPolicy="no-referrer"
+          />
         </div>
         <h2 className="text-2xl font-bold tracking-tight text-slate-900">
           MARIS MAKEUP
